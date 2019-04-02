@@ -90,12 +90,10 @@ flags.DEFINE_integer("save_images_num", 20, "Number of CNN images saved")
 flags.DEFINE_boolean("save_meta_data", False, "")
 flags.DEFINE_integer("gpu_device_id", 0, "Device ID of GPUs which will be used to compute.")
 
-
-
 def get():
-    print("Python Interpreter version:%s" % sys.version[:3])
-    print("Tensorflow version:$s" % tf.__version__)
-    print("Numpy version:%s" % np.__version__)
+    print("Python Interpreter version: {}".format(sys.version[:3]))
+    print("Tensorflow version: {}".format(tf.__version__))
+    print("Numpy version: {}".format(np.__version__))
 
     # check which library you are using
     return FLAGS
