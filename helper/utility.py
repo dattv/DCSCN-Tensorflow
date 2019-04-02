@@ -270,5 +270,73 @@ def load_image_data(filename, width=0, height=0, chanels=0, alignment=0, print_c
     return image
 
 
+def get_split_images(image, window_size, stride=None, enable_duplicate=False):
+    """
+        Divide image with given stride and window_size
+    :param image:
+    :param window_size:
+    :param stride:
+    :param enable_duplicate:
+    :return:
+    """
+    if len(image.shape) == 3 and image.shape[2] == 1:
+        image = image.reshape(image.shape[0], image.shape[1])
 
+    window_size = int(window_size)
+    size = image.itemsize  # byte size of each value
+
+    height, width = image.shape
+
+    if stride is None:
+        stride = window_size
+
+    else:
+        stride = int(stride)
+
+    if height < window_size or width < window_size:
+        return None
+
+    new_height = 1 + (height - window_size) // stride
+    new_width = 1 + (width - window_size) // stride
+
+    shape = (new_height, new_width, window_size, window_size)
+
+    strides = size * np.array([width * stride, stride, width, 1])
+    windows = np.lib.stride_tricks.as_strided(image, shape, strides=strides)
+    windows = windows.reshape(windows.shape[0] * windows.shape[1], windows.shape[2], windows.shape[3], 1)
+
+    if enable_duplicate:
+        extra_windows = []
+        if (height - window_size) % stride != 0:
+            for x in range(0, width - window_size, stride):
+                extra_windows.append((image[height - window_size - 1: height - 1, x: x + window_size]))
+
+        if (width - window_size) % stride != 0:
+            for y in range(0, height - window_size, stride):
+                extra_windows.append(image[y: y+ window_size, width - window_size - 1: width - 1])
+
+        if len(extra_windows) > 0:
+            org_size = windows.shape[0]
+            windows = np.resize(windows,
+                                [org_size + len(extra_windows), windows.shape[1], windows.shape[2],
+                                 windows.shape[3]])
+            for i in range(len(extra_windows)):
+                extra_windows[i] = extra_windows[i].reshape(
+                    [extra_windows[i].shape[0], extra_windows[i].shape[1], 1])
+                windows[org_size + i] = extra_windows[i]
+
+    return windows
+
+
+def get_divided_images(image, window_size, stride, min_size=0):
+    """
+        Divide images with given stride. note return image size may not equal to window size.
+    :param image:
+    :param window_size:
+    :param stride:
+    :param min_size:
+    :return:
+    """
+    h, w = image.shape[:2]
+    divided_images = []
 
