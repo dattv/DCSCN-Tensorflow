@@ -1,1 +1,4 @@
 # DCSCN-Tensorflow
+
+This respository for learning DCSCN - Image Super-Resolution in paper:
+Fast and Accurate Image SuperResolution by Deep CNN with Skip Connection and Network in Network
