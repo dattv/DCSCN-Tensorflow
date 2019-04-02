@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 from scipy import misc
+import math
 
 
 class Timer:
@@ -328,7 +329,7 @@ def get_split_images(image, window_size, stride=None, enable_duplicate=False):
 
         if (width - window_size) % stride != 0:
             for y in range(0, height - window_size, stride):
-                extra_windows.append(image[y: y+ window_size, width - window_size - 1: width - 1])
+                extra_windows.append(image[y: y + window_size, width - window_size - 1: width - 1])
 
         if len(extra_windows) > 0:
             org_size = windows.shape[0]
@@ -355,3 +356,48 @@ def get_divided_images(image, window_size, stride, min_size=0):
     h, w = image.shape[:2]
     divided_images = []
 
+    for y in range(0, h, stride):
+        for x in range(0, w, stride):
+            new_h = window_size if y + window_size <= h else h - y
+            new_w = window_size if x + window_size <= w else w - x
+
+            if new_h < min_size or new_w < min_size:
+                continue
+            divided_images.append(image[y: y + new_h, x: x + new_w, :])
+    return divided_images
+
+
+def xavier_cnn_initializer(shape, uniform=True):
+    """
+        initial values for tensor
+    :param shape:
+    :param uniform:
+    :return:
+    """
+    fan_in = shape[0] * shape[1] * shape[2]
+    fan_out = shape[0] * shape[1] * shape[3]
+
+    n = fan_in + fan_out
+    if uniform:
+        init_range = math.sqrt(6.e0/float(n))
+        return tf.random_uniform(shape, minval=-init_range, maxval=init_range)
+    else:
+        stddev = math.sqrt(3.e0/float(n))
+        return tf.truncated_normal(shape=shape, stddev=stddev)
+
+
+def he_initializer(shape):
+    n = shape[0] * shape[1] * shape[2]
+    stddev = math.sqrt(2.e0/float(n))
+    return tf.truncated_normal(shape=shape, stddev=stddev)
+
+
+def upsample_filter(size):
+    factor = (size + 1) // 2
+    if size % 2 == 0:
+        cneter = factor - 1
+    else:
+        center = factor - 0.5e0
+
+    og = np.ogrid[:size, :size]
+    return (1 - abs(og[0] - center) /factor) * (1 - abs(og[1] - center) / factor)
