@@ -250,3 +250,25 @@ def load_image(filename, width=0, height=0, chanels=0, alignment=0, print_consol
         return None
 
     return image
+
+
+def load_image_data(filename, width=0, height=0, chanels=0, alignment=0, print_console=True):
+    if not os.path.isfile(filename):
+        raise LoadError("File not found")
+
+    image = np.load(filename)
+
+    if (width != 0 and image.shape[1] != width) or (height != 0 and image.shape[0] != height):
+        raise LoadError("Attribute mismatch")
+    if chanels != 0 and image.shape[2] != chanels:
+        raise LoadError("Attribute mismatch")
+    if alignment != 0 and ((width % alignment) != 0 or (height % alignment) != 0):
+        raise LoadError("Attribute mismatch")
+
+    if print_console:
+        print("Loaded [{}] {} x {} x {}".format(filename, image.shape[0], image.shape[1], image.shape[2]))
+    return image
+
+
+
+
