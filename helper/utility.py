@@ -64,6 +64,11 @@ def clean_dir(path):
 
 
 def make_dir(directory):
+    """
+        Create a folder
+    :param directory:
+    :return:
+    """
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -133,6 +138,11 @@ def convert_rgb_to_y(image):
 
 
 def convert_rgb_to_ycbcr(image):
+    """
+
+    :param image:
+    :return:
+    """
     if len(image.shape) <= 2 or image.shape[2] == 1:
         return image
 
@@ -149,6 +159,11 @@ def convert_rgb_to_ycbcr(image):
 
 
 def convert_ycbcr_to_rgb(ycbcr_image):
+    """
+
+    :param ycbcr_image:
+    :return:
+    """
     rgb_image = np.zeros([ycbcr_image.shape[0], ycbcr_image.shape[1], 3])  # type: np.ndarray
 
     rgb_image[:, :, 0] = ycbcr_image[:, :, 0] - 16.0
