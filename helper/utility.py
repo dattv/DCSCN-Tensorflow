@@ -8,8 +8,8 @@ import time
 
 import numpy as np
 import tensorflow as tf
-from scipy import misc
 from PIL import Image
+from scipy import misc
 
 
 class Timer:
@@ -250,8 +250,3 @@ def load_image(filename, width=0, height=0, chanels=0, alignment=0, print_consol
         return None
 
     return image
-
-
-
-
-
