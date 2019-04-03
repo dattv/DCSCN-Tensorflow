@@ -447,6 +447,9 @@ def weight(shape, stddev=0.01, name="weight", uniform=False, initializer="stddev
 
 # utilities for logging --------------
 
+def get_shapes(input_tensor):
+    return input_tensor.get_shape().as_list()
+
 def add_summaries(scope_name, model_name, var, header_name="", save_stddev=True, save_mean=False, save_max=False,
                   save_min=False):
     with tf.name_scope(scope_name):
@@ -471,5 +474,20 @@ def log_scalar_value(writer, name, value, step):
     summary = tf.Summary(value=[tf.Summary.Value(tag=name, simple_value=value)])
     writer.add_summary(summary, step)
 
+
+def log_fcn_output_as_image(image, width, height, filters, model_name, max_outputs=20):
+    """
+        input tensor should be [W, H, In_Ch, Out_Ch]
+        so transform to [ In_Ch * Out_Ch, W, H] and visualize if
+    :param image:
+    :param width:
+    :param height:
+    :param filters:
+    :param model_name:
+    :param max_outputs:
+    :return:
+    """
+    reshaped_image = tf.reshape(image, [-1, height, width, filters])
+    tf.summary.image(model_name, reshaped_image[:, :, :, :1], max_outputs=max_outputs)
 
 
