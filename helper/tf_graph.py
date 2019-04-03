@@ -147,4 +147,39 @@ class TensorflowGraph:
 
         return h
 
+    def build_transposed_conv(self, name, input_tensor, scale, chanels):
+        with tf.variable_scope(name):
+            w = util.upscale_weight(scale=scale, chanels=chanels, name="Tconv_W")
+
+            batch_size = tf.shape(input_tensor)[0]
+            height = tf.shape(input_tensor)[1] * scale
+            width = tf.shape(input_tensor)[2] * scale
+
+            h = tf.nn.conv2d_transpose(input_tensor, w, output_shape=[batch_size, height, width, chanels],
+                                       strides=[1, scale, scale, 1], name=name)
+
+        self.pix_per_input *= scale * scale
+        self.complexity += (self.pix_per_input *
+                            util.get_upscale_filter_size(scale) *
+                            util.get_upscale_filter_size(scale) *
+                            chanels *
+                            chanels)
+
+        self.receptive_fields += 1
+
+        self.Weights.append(w)
+        self.H.append(h)
+
+
+    def build_pixel_shuffler_layer(self, name, h, scale, input_filters, output_filters, activator=None):
+        with tf.variable_scope(name):
+            self.build_conv(name + "_CNN", h, self.cnn_size, input_filters, scale * scale * output_filters,
+                            use_batch_norm=False,
+                            use_bias=True)
+
+            self.H.append(tf.depth_to_space(self.H[-1], scale))
+            self.build_activtor(self.H[-1], output_filters, activator, base_name=name)
+
+    def copy_log_to_archive(self, archive_name):
+
 
