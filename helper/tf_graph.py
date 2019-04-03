@@ -9,6 +9,7 @@ from helper import utility as util
 
 class TensorflowGraph:
     def __init__(self, flags):
+        self.name = ""
         # graph setting
         self.dropout_rate = flags.dropout_rate
         self.activator = flags.activator
@@ -54,8 +55,8 @@ class TensorflowGraph:
 
     def init_session(self, device_id):
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True ## just for use the necesary memory of GPU
-        config.gpu_options.visible_device_list = str(device_id) ## this values depends of numbers of GPUs
+        config.gpu_options.allow_growth = True  ## just for use the necesary memory of GPU
+        config.gpu_options.visible_device_list = str(device_id)  ## this values depends of numbers of GPUs
 
         print("Session and graph initialized. ")
         self.sess = tf.InterativeSession(config=config, graph=tf.Graph())
@@ -96,11 +97,54 @@ class TensorflowGraph:
         self.complexity += self.pix_per_input + int(w.shape[0] * w.shape[1] * w.shape[2] * w.shape[3])
 
         if bias is not None:
-            output = tf.add(output, bias, name= name + "_add")
+            output = tf.add(output, bias, name=name + "_add")
             self.complexity += self.pix_per_input * int(bias.shape[0])
 
         if use_batch_norm:
             output = tf.layers.batch_normalization(output, training=self.is_training, name="BN")
 
         return output
+
+    def build_conv(self, name, input_tensor, cnn_size, input_feature_num, output_feature_num, use_bias=False,
+                   activator=None, use_batch_norm=False, dropout_rate=1.0):
+
+        with tf.variable_scope(name):
+           w = util.weight([cnn_size, cnn_size, input_feature_num, output_feature_num],
+                           stddev=self.weight_dev, name="conv_W", initializer=self.initializer)
+
+           b = util.bias([output_feature_num], name="conv_B") if use_batch_norm else None
+           h = self.conv2d(input_feature_num, w, self.cnn_stride, bias=b, use_batch_norm=use_batch_norm, name=name)
+
+           if activator is not None:
+               h = self.build_activtor(h, output_feature_num, activator, base_name=name)
+
+           if dropout_rate < 1.e0:
+               h = tf.nn.dropout(h, self.dropout, name="dropout")
+
+           self.H.append(h)
+
+           if self.save_weights:
+               util.add_summaries("weight", self.name, w, save_stddev=True, save_mean=True)
+               util.add_summaries("output", self.name, h, save_stddev=True, save_mean=True)
+
+               if use_bias:
+                   util.add_summaries("bias", self.name, b, save_stddev=True, save_mean=True)
+
+           if self.save_images and cnn_size > 1:
+               util.log_cnn_weights_as_image(self.name, w, max_outputs=self.save_images_num)
+
+        if self.receptive_fields == 0:
+            self.receptive_fields = cnn_size
+
+        else:
+            self.receptive_fields += (cnn_size - 1)
+
+        self.features += "%d " % output_feature_num
+
+        self.Weights.append(w)
+        if use_bias:
+            self.Bias.append(b)
+
+        return h
+
 

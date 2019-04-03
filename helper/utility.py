@@ -447,6 +447,14 @@ def weight(shape, stddev=0.01, name="weight", uniform=False, initializer="stddev
 
     return tf.Variable(initial, name=name)
 
+def bias(shape, initial_value=0.e0, name=None):
+    initial = tf.constant(initial_value, shape=shape)
+
+    if name is None:
+        return tf.Variable(initial)
+    else:
+        return tf.Variable(initial, name=name)
+
 
 # utilities for logging --------------
 
