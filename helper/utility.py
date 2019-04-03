@@ -12,6 +12,7 @@ from PIL import Image
 from scipy import misc
 import math
 import datetime
+from skimage.measure import compare_psnr, compare_ssim
 
 
 class Timer:
@@ -560,4 +561,18 @@ def compute_PSNR_and_SSIM(image1, image2, border_size=0):
 
     if image1.shape[0] != image2.shape[0] or image1.shape[1] != image2.shape[1] or image1.shape[2] != image2.shape[2]:
         return None
+
+    image1 = trim_image_as_file(image1)
+    image2 = trim_image_as_file(image2)
+
+    if border_size > 0:
+        image1 = image1[border_size:-border_size, border_size:-border_size, :]
+        image2 = image2[border_size:-border_size, border_size:-border_size, :]
+
+    PSNR = compare_psnr(image1, image2, data_range=255)
+    SSIM = compare_ssim(image1, image2, win_size=11, gaussian_weights=True, multichannel=True, K1=0.01, K2=0.03,
+                        sigma=1.5, data_range=255)
+
+    return PSNR, SSIM
+
 
