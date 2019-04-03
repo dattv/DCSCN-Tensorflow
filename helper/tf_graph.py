@@ -182,7 +182,15 @@ class TensorflowGraph:
 
     def copy_log_to_archive(self, archive_name):
         archive_directory = self.tf_log_dir + "_" + archive_name
-        mode_archive_directory = archive_directory + "/" + self.name
+        model_archive_directory = archive_directory + "/" + self.name
         util.make_dir(archive_directory)
-        util.delete_dir()
+        util.delete_dir(model_archive_directory)
+        try:
+            shutil.copytree(self.tf_log_dir, model_archive_directory)
+            print("Tensorboard log archived to [{}].".format(model_archive_directory))
 
+        except OSError as e:
+            print(e)
+            print("NG: tensorboard log archived to [{}]".format(model_archive_directory))
+
+    def load_model(self, name="", trial=0, output_log=False):
