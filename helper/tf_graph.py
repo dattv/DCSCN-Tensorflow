@@ -181,5 +181,8 @@ class TensorflowGraph:
             self.build_activtor(self.H[-1], output_filters, activator, base_name=name)
 
     def copy_log_to_archive(self, archive_name):
-
+        archive_directory = self.tf_log_dir + "_" + archive_name
+        mode_archive_directory = archive_directory + "/" + self.name
+        util.make_dir(archive_directory)
+        util.delete_dir()
 

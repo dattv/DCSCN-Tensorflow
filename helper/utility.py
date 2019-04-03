@@ -76,6 +76,11 @@ def make_dir(directory):
         os.makedirs(directory)
 
 
+def delete_dir(directory):
+    if os.path.exists(directory):
+        clean_dir(directory)
+        os.rmdir(directory)
+
 def remove_dir(directory):
     if os.path.isdir(directory):
         clean_dir(directory)
