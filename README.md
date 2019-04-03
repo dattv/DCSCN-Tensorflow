@@ -2,7 +2,7 @@
 
 This respository for learning DCSCN - Image Super-Resolution:
 
-this project is under development ...
+This project is under development ...
 
 # DCSCN - Results
 
