@@ -194,3 +194,46 @@ class TensorflowGraph:
             print("NG: tensorboard log archived to [{}]".format(model_archive_directory))
 
     def load_model(self, name="", trial=0, output_log=False):
+        if name == "" or name == "default":
+            name = self.name
+
+        if trial > 0:
+            filename = self.checkpoint_dir + "/" + name + "_" + str(trial) + ".ckpt"
+        else:
+            filename = self.checkpoint_dir + "/" + name + ".ckpt"
+
+        if not os.path.isfile(filename + ".index"):
+            print("Error. [{}] is not exist!".format(filename))
+            exit(-1)
+
+        self.saver.restore(self.sess, filename)
+        if output_log:
+            logging.info("Model restores [{}].".format(filename))
+        else:
+            print("Model restore [{}].".format(filename))
+
+
+    def save_model(self, name="", trial=0, output_log=False):
+        if name == "" or name == "default":
+            name = self.name
+
+        if trial > 0:
+            filename = self.checkpoint_dir + "/" + name + "_" + str(trial) + ".ckpt"
+        else:
+            filename = self.checkpoint_dir + "/" + name + ".ckpt"
+
+        self.saver.save(self.sess, filename)
+
+        if output_log:
+            logging.info("Model saved [{}].".format(filename))
+        else:
+            print("Model saved [{}].".format(filename))
+
+    def build_summary_saver(self):
+        if self.enable_log:
+            self.summary_op = tf.summary.merge_all()
+            self.train_writer = tf.summary.FileWriter(self.tf_log_dir + "/train")
+            self.test_writer = tf.summary.FileWriter(self.tf_log_dir + "/test")
+
+        self.saver = tf.train.Saver(max_to_keep=None)
+
