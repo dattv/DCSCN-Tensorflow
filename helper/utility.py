@@ -534,6 +534,7 @@ def get_loss_image(image1, image2, scale=1.e0, border_size=0):
 
     return loss_image
 
+
 def trim_image_as_file(image):
     image = np.rint(image)
     image = np.clip(image, 0, 255)
@@ -575,6 +576,7 @@ def compute_PSNR_and_SSIM(image1, image2, border_size=0):
 
     return PSNR, SSIM
 
+
 def print_filter_weights(tensor):
     print("Tensor [{}] shape={}".format(tensor.name, str(tensor.get_shape())))
 
@@ -589,3 +591,19 @@ def print_filter_weights(tensor):
     print("\n")
 
 
+def print_filter_bias(tensor):
+    print("Tensor[%s] shape=%s" % (tensor.name, str(tensor.get_shape())))
+    bias = tensor.eval()
+    values = ""
+    for i in range(bias.shape[0]):
+        values += "%2.3f " % bias[i]
+
+    print(values + "\n")
+
+
+def get_PSNR(mse, max_value=255.e0):
+    if mse is None or mse == float("Inf") or mse == 0:
+        PSNR = 0
+    else:
+        PSNR = 20.e0*math.log(max_value/math.sqrt(mse), 10.e0)
+    return PSNR
