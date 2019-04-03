@@ -27,7 +27,7 @@ class Timer:
         self.times[time_id] += time.time() - self.start_times[time_id]
         self.counts[time_id] += 1
 
-    def print(self):
+    def print_(self):
         for i in range(self.timer_count):
             if self.counts[i] > 0:
                 total = 0
@@ -417,5 +417,59 @@ def upscale_weight(scale, chanels, name='weight'):
         initial[:, :, i, i] = filter_matrix
 
     return tf.Variable(initial, name=name)
+
+
+def weight(shape, stddev=0.01, name="weight", uniform=False, initializer="stddev"):
+    if initializer == "xavier":
+        initial = xavier_cnn_initializer(shape, uniform=uniform)
+
+    elif initializer == "he":
+        initial = he_initializer(shape)
+
+    elif initializer == "uniform":
+        initial = tf.random_uniform(shape, minval=-2. * stddev, maxval=2. * stddev)
+
+    elif initializer == "stddev":
+        initial = tf.truncated_normal(shape, stddev=stddev)
+
+    elif initializer == "identity":
+        initial = he_initializer(shape)
+        if len(shape) == 4:
+            initial = initial.eval()
+            i = shape[0] // 2
+            j = shape[1] // 2
+            for k in range(min(shape[2], shape[3])):
+                initial[i][j][k][k] = 1.e0
+    else:
+        initial = tf.zeros(shape)
+
+    return tf.Variable(initial, name=name)
+
+# utilities for logging --------------
+
+def add_summaries(scope_name, model_name, var, header_name="", save_stddev=True, save_mean=False, save_max=False,
+                  save_min=False):
+    with tf.name_scope(scope_name):
+        mean_var = tf.reduce_mean(var)
+
+        if save_mean:
+            tf.summary.scalar(header_name + "mean/" + model_name, mean_var)
+
+        if save_stddev:
+            stddev_var = tf.sqrt(tf.reduce_mean(tf.square(var - mean_var)))
+            tf.summary.scalar(header_name + "stddev/" + model_name, stddev_var)
+
+        if save_max:
+            tf.summary.scalar(header_name + "max/" + model_name, tf.reduce_max(var))
+
+        if save_min:
+            tf.summary.scalar(header_name, "min/" + model_name, tf.reduce_min(var))
+
+        tf.summary.histogram(header_name + model_name, var)
+
+def log_scalar_value(writer, name, value, step):
+    summary = tf.Summary(value=[tf.Summary.Value(tag=name, simple_value=value)])
+    writer.add_summary(summary, step)
+
 
 
