@@ -575,4 +575,17 @@ def compute_PSNR_and_SSIM(image1, image2, border_size=0):
 
     return PSNR, SSIM
 
+def print_filter_weights(tensor):
+    print("Tensor [{}] shape={}".format(tensor.name, str(tensor.get_shape())))
+
+    weight_value = tensor.eval()
+    for i in range(weight_value.shape[3]):
+        values = ""
+        for x in range(weight_value.shape[0]):
+            for y in range(weight_value.shape[1]):
+                for c in range(weight_value.shape[2]):
+                    values += "%2.3f" % weight_value[y][x][c][i]
+        print(values)
+    print("\n")
+
 
