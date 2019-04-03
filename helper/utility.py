@@ -605,5 +605,56 @@ def get_PSNR(mse, max_value=255.e0):
     if mse is None or mse == float("Inf") or mse == 0:
         PSNR = 0
     else:
-        PSNR = 20.e0*math.log(max_value/math.sqrt(mse), 10.e0)
+        PSNR = 20.e0 * math.log(max_value / math.sqrt(mse), 10.e0)
     return PSNR
+
+
+def print_num_of_total_parameters(output_detail=False, output_to_logging=False):
+    total_parameters = 0
+    parameters_string = ""
+
+    for variable in tf.trainable_variables():
+
+        shape = variable.get_shape()
+        variable_parameters = 1
+        for dim in shape:
+            variable_parameters *= dim.value
+        total_parameters += variable_parameters
+        if len(shape) == 1:
+            parameters_string += ("%s %d, " % (variable.name, variable_parameters))
+        else:
+            parameters_string += ("%s %s=%d, " % (variable.name, str(shape), variable_parameters))
+
+    if output_to_logging:
+        if output_detail:
+            logging.info(parameters_string)
+        logging.info("Total %d variables, %s params" % (len(tf.trainable_variables()), "{:,}".format(total_parameters)))
+    else:
+        if output_detail:
+            print(parameters_string)
+        print("Total %d variables, %s params" % (len(tf.trainable_variables()), "{:,}".format(total_parameters)))
+
+
+def flip(image, flip_type, invert=False):
+    if flip_type == 0:
+        return image
+    elif flip_type == 1:
+        return np.flipud(image)
+    elif flip_type == 2:
+        return np.fliplr(image)
+    elif flip_type == 3:
+        return np.flipud(np.fliplr(image))
+    elif flip_type == 4:
+        return np.rot90(image, 1 if invert is False else -1)
+    elif flip_type == 5:
+        return np.rot90(image, -1 if invert is False else 1)
+    elif flip_type == 6:
+        if invert is False:
+            return np.flipud(np.rot90(image))
+        else:
+            return np.rot90(np.flipud(image), -1)
+    elif flip_type == 7:
+        if invert is False:
+            return np.flipud(np.rot90(image, -1))
+        else:
+            return np.rot90(np.flipud(image), 1)
