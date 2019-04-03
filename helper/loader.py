@@ -80,3 +80,44 @@ class BatchDataSets:
         self.batch_index = None
 
     def build_batch(self, data_dir):
+        """
+        Build batch images
+        :param data_dir:
+        :return:
+        """
+        print("Building batch images for {}...".format(self.batch_dir))
+        filenames = util.get_files_in_directory(data_dir)
+
+        images_count = 0
+
+        util.make_dir(self.batch_dir)
+        util.clean_dir(self.batch_dir)
+        util.make_dir(self.batch_dir + "/" + INPUT_IMAGE_IDR)
+        util.make_dir(self.batch_dir + "/" + INTERPOLATED_IMAGE_DIR)
+        util.make_dir(self.batch_dir + "/" + TRUE_IMAGE_DIR)
+
+        processed_images = 0
+
+        for filename in filenames:
+            output_window_size = self.batch_image_size * self.scale
+            output_window_stride = self.stride * self.scale
+
+            input_image, input_interpolated_image, true_image = build_image_set(filename, chanels=self.chanels,
+                                                                                resampleing_method=self.resampling_method,
+                                                                                scale=self.scale,
+                                                                                print_console=False)
+
+            # split into batch images
+            input_batch_images = util.get_split_images(input_image, self.batch_image_size, stride=self.stride)
+            input_interpolated_batch_images = util.get_split_images(input_interpolated_image,
+                                                                    output_window_size,
+                                                                    stride=self.stride)
+
+            if input_batch_images is None or input_interpolated_batch_images is None:
+                continue
+            input_count = input_batch_images.shape[0]
+
+            true_batch_image = util.get_split_images(true_image, output_window_size, stride=output_window_stride)
+
+            # for i in range(input_count):
+            #     self.save_input_batch_image()
