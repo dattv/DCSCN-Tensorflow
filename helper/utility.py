@@ -11,6 +11,7 @@ import tensorflow as tf
 from PIL import Image
 from scipy import misc
 import math
+import datetime
 
 
 class Timer:
@@ -379,16 +380,16 @@ def xavier_cnn_initializer(shape, uniform=True):
 
     n = fan_in + fan_out
     if uniform:
-        init_range = math.sqrt(6.e0/float(n))
+        init_range = math.sqrt(6.e0 / float(n))
         return tf.random_uniform(shape, minval=-init_range, maxval=init_range)
     else:
-        stddev = math.sqrt(3.e0/float(n))
+        stddev = math.sqrt(3.e0 / float(n))
         return tf.truncated_normal(shape=shape, stddev=stddev)
 
 
 def he_initializer(shape):
     n = shape[0] * shape[1] * shape[2]
-    stddev = math.sqrt(2.e0/float(n))
+    stddev = math.sqrt(2.e0 / float(n))
     return tf.truncated_normal(shape=shape, stddev=stddev)
 
 
@@ -400,7 +401,7 @@ def upsample_filter(size):
         center = factor - 0.5e0
 
     og = np.ogrid[:size, :size]
-    return (1 - abs(og[0] - center) /factor) * (1 - abs(og[1] - center) / factor)
+    return (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
 
 
 def get_upscale_filter_size(scale):
@@ -445,10 +446,12 @@ def weight(shape, stddev=0.01, name="weight", uniform=False, initializer="stddev
 
     return tf.Variable(initial, name=name)
 
+
 # utilities for logging --------------
 
 def get_shapes(input_tensor):
     return input_tensor.get_shape().as_list()
+
 
 def add_summaries(scope_name, model_name, var, header_name="", save_stddev=True, save_mean=False, save_max=False,
                   save_min=False):
@@ -470,6 +473,7 @@ def add_summaries(scope_name, model_name, var, header_name="", save_stddev=True,
 
         tf.summary.histogram(header_name + model_name, var)
 
+
 def log_scalar_value(writer, name, value, step):
     summary = tf.Summary(value=[tf.Summary.Value(tag=name, simple_value=value)])
     writer.add_summary(summary, step)
@@ -489,5 +493,26 @@ def log_fcn_output_as_image(image, width, height, filters, model_name, max_outpu
     """
     reshaped_image = tf.reshape(image, [-1, height, width, filters])
     tf.summary.image(model_name, reshaped_image[:, :, :, :1], max_outputs=max_outputs)
+
+
+def log_cnn_weights_as_image(model_name, weights, max_outputs=20):
+    """
+    input tensor shourld be [W, H, In_Ch, Out_ch]
+    so transform to [In_ch * Out_ch, W, H]
+    :param model_name:
+    :param weights:
+    :param max_outputs:
+    :return:
+    """
+    shapes = get_shapes(weights)
+    weights = tf.reshape(weights, [shapes[0], shapes[1], shapes[2] * shapes[3]])
+    weights_transposed = tf.transpose(weights, [2, 0, 1])
+    weights_transposed = tf.reshape(weights_transposed, [shapes[2] * shapes[3], shapes[0], shapes[1], 1])
+    tf.summary.image(model_name, weights_transposed, max_outputs=max_outputs)
+
+
+def get_now_date():
+    d = datetime.datetime.today()
+    return "%s/%s/%s %s:%s:%s" % (d.year, d.month, d.day, d.hour, d.minute, d.second)
 
 
