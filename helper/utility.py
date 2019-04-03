@@ -543,3 +543,21 @@ def trim_image_as_file(image):
     return image
 
 
+def compute_PSNR_and_SSIM(image1, image2, border_size=0):
+    """
+    Compute PSNR and SSIM index form 2 images
+    we round it and clib to 0 - 255. then shape "scale pixesl from each border
+    :param image1:
+    :param image2:
+    :param border_size:
+    :return:
+    """
+    if len(image1.shape) == 2:
+        image1 = image1.reshape(image1.shape[0], image1.shape[1], 1)
+
+    if len(image2.shape) == 2:
+        image2 = image2.reshape(image2.shape[0], image2.shape[1], 1)
+
+    if image1.shape[0] != image2.shape[0] or image1.shape[1] != image2.shape[1] or image1.shape[2] != image2.shape[2]:
+        return None
+
