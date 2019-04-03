@@ -401,3 +401,21 @@ def upsample_filter(size):
 
     og = np.ogrid[:size, :size]
     return (1 - abs(og[0] - center) /factor) * (1 - abs(og[1] - center) / factor)
+
+
+def get_upscale_filter_size(scale):
+    return 2 * scale - scale % 2
+
+
+def upscale_weight(scale, chanels, name='weight'):
+    cnn_size = get_upscale_filter_size(scale)
+
+    initial = np.zeros(shape=[cnn_size, cnn_size, chanels, chanels], dtype=np.float32)
+    filter_matrix = upsample_filter(cnn_size)
+
+    for i in range(chanels):
+        initial[:, :, i, i] = filter_matrix
+
+    return tf.Variable(initial, name=name)
+
+
