@@ -191,6 +191,36 @@ class SuperResolution:
             self.batch_input[i], self.batch_input_bicubic[i], self.batch_true[i] = self.train.load_batch_image(
                 self.max_value)
 
+    def conv2d(self, x, w, stride, bias=None, activator=None, leaky_relu_alpha=0.1, name=""):
+        conv = tf.nn.conv2d(x, w, strides=[stride, stride, 1, 1], padding="SAME", name=name + "_conv")
+
+        self.complexity += int(w.shape[0] * w.shape[1] * w.shape[2] * w.shape[3])
+
+        if bias is not None:
+            conv = tf.add(conv, bias, name=name + "_add")
+
+            self.complexity += int(bias.shape[0])
+
+        if activator is not None:
+            if activator == "relu":
+                conv = tf.nn.relu(conv, name=name + "_relu")
+            elif activator == "sigmoid":
+                conv = tf.nn.sigmoid(conv, name=name + "_sigmoid")
+            elif activator == "tanh":
+                conv = tf.nn.tanh(conv, name=name + "_tanh")
+            elif activator == "leaky_relu":
+                conv = tf.maximum(conv, leaky_relu_alpha * conv, name=name + "_leaky")
+            elif activator == "prelu":
+                with tf.variable_scope("prelu"):
+                    alphas = tf.Variable(tf.constant(0.1, shape=[w.get_shape()[3]]), name=name + "_prelu")
+                    if self.save_weights:
+                        util.add_summaries("prelu_alpha", self.name, alphas, save_stddev=False, save_mean=False)
+                    conv = tf.nn.relu(conv) + tf.multiply(alphas, (conv - tf.abs(conv))) * 0.5
+            else:
+                raise NameError('Not implemented activator:%s' % activator)
+            self.complexity += int(bias.shape[0])
+        return conv
+
     def build_conv_and_bias(self, name, input_tensor, cnn_size, input_feature_num, output_feature_num,
                             use_activation=True, use_dropout=True):
         with tf.variable_scope(name):
@@ -199,7 +229,87 @@ class SuperResolution:
 
             b = util.bias([output_feature_num], name="conv_B")
 
+            h = self.conv2d(input_tensor, w, self.cnn_stride, bias=b,
+                            activator=self.activator if use_activation else None,
+                            name=name)
 
+            if use_dropout and self.dropout != 1.e0:
+                h = tf.nn.dropout(h, self.dropout_input, name="dropout")
 
+            if self.save_weights:
+                util.add_summaries("weight", self.name, w, save_stddev=True, save_mean=True)
+                util.add_summaries("bias", self.name, b, save_stddev=True, save_mean=True)
 
+            if self.save_images and cnn_size > 1 and input_feature_num == 1:
+                weight_transposed = tf.transpose(w, [3, 0, 1, 2])
+                with tf.name_scope("image"):
+                    tf.summary.image(self.name, weight_transposed, max_outputs=self.log_weight_image_num)
 
+        return w, b, h
+
+    def build_conv(self, name, input_tensor, cnn_size, input_feature_num, output_feature_num):
+        with tf.variable_scope(name):
+            w = util.weight([cnn_size, cnn_size, input_feature_num, output_feature_num],
+                            stddev=self.weight_dev, name="conv_W", initializer=self.initializer)
+
+            h = self.conv2d(input_tensor, w, self.cnn_stride, bias=None, activator=None, name=name)
+
+            if self.save_weights:
+                util.add_summaries("weight", self.name, w, save_stddev=True, save_mean=True)
+
+            if self.save_images and cnn_size > 1 and input_feature_num == 1:
+                weight_transposed = tf.transpose(w, [3, 0, 1, 2])
+                with tf.name_scope("image"):
+                    tf.summary.image(self.name, weight_transposed, max_outputs=self.log_weight_image_num)
+
+        return w, h
+
+    def build_input_batch(self, batch_dir):
+
+        for i in range(self.batch_num):
+            if self.index_in_epoch >= self.train.input.count:
+                self.init_epoch_index()
+                self.epochs_completed += 1
+
+            image_no = self.batch_index[self.index_in_epoch]
+            self.batch_input[i] = util.load_image(batch_dir + "/" + INPUT_IMAGE_DIR + "/%06d.bmp" % image_no,
+                                                  print_console=False)
+            batch_input_quad = util.load_image(batch_dir + "/" + INTERPOLATED_IMAGE_DIR + "/%06d.bmp" % image_no,
+                                               print_console=False)
+            loader.convert_to_multi_channel_image(self.batch_input_quad[i], batch_input_quad, self.scale)
+            batch_true_quad = util.load_image(batch_dir + "/" + TRUE_IMAGE_DIR + "/%06d.bmp" % image_no,
+                                              print_console=False)
+            loader.convert_to_multi_channel_image(self.batch_true_quad[i], batch_true_quad, self.scale)
+            self.index_in_epoch += 1
+
+    def init_train_step(self):
+        self.lr = self.initial_lr
+        self.csv_epochs = []
+        self.csv_psnr = []
+        self.csv_training_psnr = []
+        self.epochs_completed = 0
+        self.min_validation_mse = -1
+        self.min_validation_epoch = -1
+        self.step = 0
+
+        self.start_time = time.time()
+
+    def end_train_step(self):
+        self.total_time = time.time() - self.start_time
+
+    def print_steps_completed(self, output_to_logging=False):
+        if self.step == 0:
+            return
+        processing_time = self.total_time / self.step
+        h = self.total_time // (60 * 60)
+        m = (self.total_time - h * 60 * 60) // 60
+        s = (self.total_time - h * 60 * 60 - m * 60)
+
+        status = "Finished at Total Epoch:%d Steps:%s Time:%02d:%02d:%02d (%2.3fsec/step)" % (
+            self.epochs_completed, "{:,}".format(self.step), h, m, s, processing_time)
+
+        if output_to_logging:
+            logging.info(status)
+
+        else:
+            print(status)
