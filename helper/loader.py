@@ -8,6 +8,7 @@ import configparser
 import numpy as np
 from scipy import misc
 import random
+import logging
 
 INPUT_IMAGE_DIR = "input"
 INTERPOLATED_IMAGE_DIR = "interpolated"
@@ -274,3 +275,81 @@ class BatchDataSets:
 
     def save_true_batch_image(self, image_number, image):
         return util.save_image(self.batch_dir + "/" + TRUE_IMAGE_DIR + "/%06d.bmp" % image_number, image)
+
+
+class DynamicDataset:
+    def __init__(self, scale, batch_image_size, chanels=1, resampling_method="bicubic"):
+        self.scale = scale
+        self.batch_image_size = batch_image_size
+        self.chanels = chanels
+        self.resampling_method = resampling_method
+
+        self.filenames = []
+        self.count = 0
+        self.batch_index = None
+
+    def set_data_dir(self, data_dir):
+        self.filenames = util.get_files_in_directory(data_dir)
+        self.count = len(self.filenames)
+        if self.count <= 0:
+            logging.error("Data Directory is empty.")
+            exit(-1)
+
+    def init_batch_index(self):
+        self.batch_index = random.sample(range(0, self.count), self.count)
+        self.index = 0
+
+    def get_next_image_no(self):
+        if self.index >= self.count:
+            self.init_batch_index()
+
+        image_no = self.batch_index[self.index]
+        self.index += 1
+        return image_no
+
+    def load_batch_image(self, max_value):
+
+        """ index won't be used. """
+
+        image = None
+        while image is None:
+            image = self.load_random_patch(self.filenames[self.get_next_image_no()])
+
+        if random.randrange(2) == 0:
+            image = np.fliplr(image)
+
+        input_image = util.resize_image_by_pil(image, 1 / self.scale)
+        input_bicubic_image = util.resize_image_by_pil(input_image, self.scale)
+
+        if max_value != 255:
+            scale = max_value / 255.0
+            input_image = np.multiply(input_image, scale)
+            input_bicubic_image = np.multiply(input_bicubic_image, scale)
+            image = np.multiply(image, scale)
+
+        return input_image, input_bicubic_image, image
+
+    def load_random_patch(self, filename):
+
+        image = util.load_image(filename, print_console=False)
+        height, width = image.shape[0:2]
+
+        load_batch_size = self.batch_image_size * self.scale
+
+        if height < load_batch_size or width < load_batch_size:
+            print("Error: %s should have more than %d x %d size." % (filename, load_batch_size, load_batch_size))
+            return None
+
+        if height == load_batch_size:
+            y = 0
+        else:
+            y = random.randrange(height - load_batch_size)
+
+        if width == load_batch_size:
+            x = 0
+        else:
+            x = random.randrange(width - load_batch_size)
+        image = image[y:y + load_batch_size, x:x + load_batch_size, :]
+        image = build_input_image(image, channels=self.channels, convert_ycbcr=True)
+
+        return image
