@@ -3,6 +3,8 @@
 """
 
 from helper import utility as util
+import os
+import configparser
 
 INPUT_IMAGE_IDR = "input"
 INTERPOLATED_IMAGE_DIR = "interpolated"
@@ -121,3 +123,24 @@ class BatchDataSets:
 
             # for i in range(input_count):
             #     self.save_input_batch_image()
+
+    def load_batch_counts(self):
+        """
+        load already built batch images.
+        :return:
+        """
+        if not os.path.isdir(self.batch_dir):
+            self.count = 0
+            return
+
+        config = configparser.ConfigParser()
+        try:
+            with open(self.batch_dir + "/batch_images.ini") as f:
+                config.read_file(f)
+            self.count = config.getint("batch", "count")
+
+        except IOError:
+            self.count = 0
+            return
+
+
