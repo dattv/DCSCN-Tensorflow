@@ -122,11 +122,32 @@ class BatchDataSets:
                 continue
             input_count = input_batch_images.shape[0]
 
-            true_batch_image = util.get_split_images(true_image, output_window_size, stride=output_window_stride)
+            true_batch_images = util.get_split_images(true_image, output_window_size, stride=output_window_stride)
 
-            # for i in range(input_count):
-            #     self.save_input_batch_image()
-            print("djkfldkj")
+            for i in range(input_count):
+                self.save_input_batch_image(images_count, input_batch_images[i])
+                self.save_interpolated_batch_image(images_count, input_interpolated_batch_images[i])
+                self.save_true_batch_image(images_count, true_batch_images[i])
+                images_count += 1
+            processed_images += 1
+            if processed_images % 10 == 0:
+                print(".", end="", flush=True)
+
+        print("Finished")
+        self.count = images_count
+
+        print("%d mini-batch images are built(saved)." % images_count)
+
+        config = configparser.ConfigParser()
+        config.add_section("batch")
+        config.set("batch", "count", str(images_count))
+        config.set("batch", "scale", str(self.scale))
+        config.set("batch", "batch_image_size", str(self.batch_image_size))
+        config.set("batch", "stride", str(self.stride))
+        config.set("batch", "chanels", str(self.chanels))
+
+        with open(self.batch_dir + "/batch_images.ini", "w") as configfile:
+            config.write(configfile)
 
     def load_batch_counts(self):
         """
