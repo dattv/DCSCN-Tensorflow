@@ -11,64 +11,48 @@ from numpy.f2py.auxfuncs import F2PYError
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
-# Model (network) Parameters
-flags.DEFINE_integer("scale", 2, "Scale factor for Super Resolution (should be 2 or more)")
-flags.DEFINE_integer("layers", 12, "Number of layers of feature xxtraction CNNs")
-flags.DEFINE_integer("filters", 196, "Number of filters of first feature-extraction CNNs")
-flags.DEFINE_integer("min_filters", 48, "Number of filters of last feature-extraction CNNs")
-flags.DEFINE_float("filters_decay_gamma", 1.5,
-                   "Number of CNN filters are decayed from [filters] to [min_filters] by this gamma")
-flags.DEFINE_boolean("use_nin", True, "Use Network In Network")
-flags.DEFINE_integer("nin_filters", 64, "Number of CNN filters in A1 at Reconstruction network")
-flags.DEFINE_integer("nin_filters2", 32, "Number of CNN filters in B1 and B2 at Reconstruction net.")
+# Model
+flags.DEFINE_integer("filters", 96, "Number of CNN Filters")
+flags.DEFINE_integer("min_filters", 32, "Number of the last CNN Filters")
+flags.DEFINE_integer("nin_filters", 64, "Number of Filters of A1 in Reconstruction network")
+flags.DEFINE_integer("nin_filters2", 0, "Number of Filters of B1 and B2 in Reconstruction. If 0, it will be half of A1")
 flags.DEFINE_integer("cnn_size", 3, "Size of CNN filters")
-flags.DEFINE_integer("reconstruct_layers", 1, "Number of Reconstruct CNN Layers. (can be 0.)")
-flags.DEFINE_integer("reconstruct_filters", 32, "Number of Reconstruct CNN Filters")
-flags.DEFINE_float("dropout_rate", 0.8, "Output nodes should be kept by this probability. If 1, don't use dropout.")
-flags.DEFINE_string("activator", "prelu", "Activator can be [relu, leaky_relu, prelu, sigmoid, tanh, selu]")
-flags.DEFINE_boolean("pixel_shuffler", True, "Use Pixel Shuffler instead of transposed CNN")
-flags.DEFINE_integer("pixel_shuffler_filters", 0,
-                     "Num of Pixel Shuffler output channels. 0 means use same channels as input.")
-flags.DEFINE_integer("self_ensemble", 8, "Number of using self ensemble method. [1 - 8]")
-flags.DEFINE_boolean("batch_norm", False, "use batch normalization after each CNNs")
+flags.DEFINE_integer("last_cnn_size", 1, "Size of Last CNN filters")
+flags.DEFINE_integer("layers", 7, "Number of layers of CNNs")
+flags.DEFINE_boolean("nin", True, "Use Network In Network")
+flags.DEFINE_boolean("bicubic_init", True, "make bicubic interpolation values as initial input of x2")
+flags.DEFINE_float("dropout", 0.8, "For dropout value for  value. Don't use if it's 1.0.")
+flags.DEFINE_string("activator", "prelu", "Activator. can be [relu, leaky_relu, prelu, sigmoid, tanh]")
+flags.DEFINE_float("filters_decay_gamma", 1.2, "Gamma")
 
-# Training Parameters
-flags.DEFINE_boolean("bicubic_init", True, "make bicubic interpolation values as initial input for x2")
-flags.DEFINE_float("clipping_norm", 5, "Norm for gradient clipping. If it's <= 0 we don't use gradient clipping.")
+# Training
 flags.DEFINE_string("initializer", "he", "Initializer for weights can be [uniform, stddev, xavier, he, identity, zero]")
 flags.DEFINE_float("weight_dev", 0.01, "Initial weight stddev (won't be used when you use he or xavier initializer)")
 flags.DEFINE_float("l2_decay", 0.0001, "l2_decay")
 flags.DEFINE_string("optimizer", "adam", "Optimizer can be [gd, momentum, adadelta, adagrad, adam, rmsprop]")
-flags.DEFINE_float("beta1", 0.9, "Beta1 for adam optimizer")
-flags.DEFINE_float("beta2", 0.999, "Beta2 for adam optimizer")
-flags.DEFINE_float("epsilon", 1e-8, "epsilon for adam optimizer")
+flags.DEFINE_float("beta1", 0.1, "Beta1 for adam optimizer")
+flags.DEFINE_float("beta2", 0.1, "Beta2 for adam optimizer")
 flags.DEFINE_float("momentum", 0.9, "Momentum for momentum optimizer and rmsprop optimizer")
-flags.DEFINE_integer("batch_num", 20, "Number of mini-batch images for training")
-flags.DEFINE_integer("batch_image_size", 48, "Image size for mini-batch")
+flags.DEFINE_integer("batch_num", 40, "Number of mini-batch images for training")
+flags.DEFINE_integer("batch_image_size", 32, "Image size for mini-batch")
 flags.DEFINE_integer("stride_size", 0, "Stride size for mini-batch. If it is 0, use half of batch_image_size")
-flags.DEFINE_integer("training_images", 24000, "Number of training on each epoch")
-flags.DEFINE_boolean("use_l1_loss", False, "Use L1 Error as loss function instead of MSE Error.")
 
 # Learning Rate Control for Training
-flags.DEFINE_float("initial_lr", 0.002, "Initial learning rate")
-flags.DEFINE_float("lr_decay", 0.5, "Learning rate decay rate")
-flags.DEFINE_integer("lr_decay_epoch", 9, "After this epochs are completed, learning rate will be decayed by lr_decay.")
-flags.DEFINE_float("end_lr", 2e-5, "Training end learning rate. If the current learning rate gets lower than this"
-                                   "value, then training will be finished.")
+flags.DEFINE_float("initial_lr", 0.001, "Initial learning rate")
+flags.DEFINE_float("lr_decay", 0.5, "Learning rate decay rate when it does not reduced during specific epoch")
+flags.DEFINE_integer("lr_decay_epoch", 5, "Decay learning rate when loss does not decrease (5)")
+flags.DEFINE_float("end_lr", 2e-5, "Training end learning rate (2e-5")
 
 # Dataset or Others
-flags.DEFINE_string("dataset", "bsd200", "Training dataset dir. [yang91, general100, bsd200, other]")
-flags.DEFINE_string("test_dataset", "set5", "Directory for test dataset [set5, set14, bsd100, urban100, all]")
-flags.DEFINE_integer("tests", 1, "Number of training sets")
-flags.DEFINE_boolean("do_benchmark", False, "Evaluate the performance for set5, set14 and bsd100 after the training.")
+flags.DEFINE_string("test_dataset", "set5", "Directory of Test dataset [set5, set14, bsd100, urban100]")
+flags.DEFINE_string("dataset", "yang91", "Training dataset dir. [yang91, general100, bsd200]")
+flags.DEFINE_integer("tests", 1, "Number of training tests")
 
 # Image Processing
+flags.DEFINE_integer("scale", 2, "Scale factor for Super Resolution (can be 2 or more)")
 flags.DEFINE_float("max_value", 255, "For normalize image pixel value")
-flags.DEFINE_integer("channels", 1, "Number of image channels used. Now it should be 1. using only Y from YCbCr.")
-flags.DEFINE_integer("psnr_calc_border_size", -1,
-                     "Cropping border size for calculating PSNR. if < 0, use 2 + scale for default.")
-flags.DEFINE_boolean("build_batch", False, "Build pre-processed input batch. Makes training significantly faster but "
-                                           "the patches are limited to be on the grid.")
+flags.DEFINE_integer("channels", 1, "Number of image channels used. Use only Y of YCbCr when channels=1.")
+flags.DEFINE_boolean("jpeg_mode", False, "Turn on or off jpeg mode when converting from rgb to ycbcr")
 
 # Environment (all directory name should not contain '/' after )
 flags.DEFINE_string("checkpoint_dir", "models", "Directory for checkpoints")
@@ -82,13 +66,12 @@ flags.DEFINE_string("model_name", "", "model name for save files and tensorboard
 flags.DEFINE_string("load_model_name", "", "Filename of model loading before start [filename or 'default']")
 
 # Debugging or Logging
-flags.DEFINE_boolean("initialize_tf_log", True, "Clear all tensorboard log before start")
-flags.DEFINE_boolean("enable_log", True, "Enables tensorboard-log. Save loss.")
-flags.DEFINE_boolean("save_weights", True, "Save weights and biases/gradients")
+flags.DEFINE_boolean("debug", False, "Display each calculated MSE and weight variables")
+flags.DEFINE_boolean("initialise_tf_log", True, "Clear all tensorboard log before start")
+flags.DEFINE_boolean("save_loss", True, "Save loss")
+flags.DEFINE_boolean("save_weights", False, "Save weights and biases")
 flags.DEFINE_boolean("save_images", False, "Save CNN weights as images")
-flags.DEFINE_integer("save_images_num", 20, "Number of CNN images saved")
-flags.DEFINE_boolean("save_meta_data", False, "")
-flags.DEFINE_integer("gpu_device_id", 0, "Device ID of GPUs which will be used to compute.")
+flags.DEFINE_integer("save_images_num", 10, "Number of CNN images saved")
 
 def get():
     print("Python Interpreter version: {}".format(sys.version[:3]))
