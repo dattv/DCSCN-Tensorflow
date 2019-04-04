@@ -55,7 +55,22 @@ class SuperResolution:
             self.stride_size = flags.stride_size
 
         # Learning rate control for training
+        self.initial_lr = flags.initial_lr      # Initial learning rate
+        self.lr_decay = flags.lr_decay          # Learning rate decay rate when it does not reduced during specific epoch
+        self.lr_decay_epoch = flags.lr_decay_epoch
+                                                # Decay learning rate when loss does not decrease (5)
+        # Dataset or Others
+        self.dataset = flags.dataset            # Training dataset dir. [yang91, general100, bsd200]
+        self.test_dataset = flags.test_dataset  # Directory of Test dataset [set5, set14, bsd100, urban100]
 
+        # Image Processing Parameters
+        self.scale = flags.scale                # Scale factor for Super Resolution (can be 2 or more)
+        self.max_value = flags.max_value        # For normalize image pixel value
+        self.chanels = flags.chanels            # Number of image channels used. Use only Y of YCbCr when channels=1.
+        self.jpeg_mode = flags.jpeg_model       # Turn on or off jpeg mode when converting from rgb to ycbcr
+        self.output_channels = self.scale * self.scale
+                                                #
+        # Environment
 
 
 
